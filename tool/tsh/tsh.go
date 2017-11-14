@@ -118,6 +118,10 @@ type CLIConf struct {
 	// format to use with --out to store a fershly retreived certificate
 	IdentityFormat client.IdentityFileFormat
 
+	// OutputFormat is an argument to --out for 'tsh ls' that defines
+	// the output format to stdout
+	OutputFormat string
+
 	// AuthConnector is the name of the connector to use.
 	AuthConnector string
 }
@@ -188,6 +192,7 @@ func Run(args []string, underTest bool) {
 	// ls
 	ls := app.Command("ls", "List remote SSH nodes")
 	ls.Arg("labels", "List of labels to filter node list").StringVar(&cf.UserHost)
+	ls.Flag("out", "Format output. Possible values : ansible").Short('o').StringVar(&cf.OutputFormat)
 	// clusters
 	clusters := app.Command("clusters", "List available Teleport clusters")
 	clusters.Flag("quiet", "Quiet mode").Short('q').BoolVar(&cf.Quiet)
@@ -368,13 +373,34 @@ func onListNodes(cf *CLIConf) {
 	if err != nil {
 		utils.FatalError(err)
 	}
-	t := asciitable.MakeTable([]string{"Node Name", "Node ID", "Address", "Labels"})
-	for _, n := range nodes {
-		t.AddRow([]string{
-			n.GetHostname(), n.GetName(), n.GetAddr(), n.LabelsString(),
-		})
+
+	if cf.OutputFormat == "ansible" {
+		inventory := make(map[string][]string)
+		// get all keys
+		for _, n := range nodes {
+			// get labels and add to groups
+			for label, val := range n.GetAllLabels() {
+				// groupName is of the form apache-2.2
+				groupName := label + "-" + val
+				inventory[groupName] = append(inventory[groupName], n.GetAddr())
+			}
+		}
+		// write one tulpe by keys
+		for groupName, nodeIPs := range inventory {
+			fmt.Println("[" + groupName + "]")
+			for _, IP := range nodeIPs {
+				fmt.Println(IP)
+			}
+		}
+	} else {
+		t := asciitable.MakeTable([]string{"Node Name", "Node ID", "Address", "Labels"})
+		for _, n := range nodes {
+			t.AddRow([]string{
+				n.GetHostname(), n.GetName(), n.GetAddr(), n.LabelsString(),
+			})
+		}
+		fmt.Println(t.AsBuffer().String())
 	}
-	fmt.Println(t.AsBuffer().String())
 }
 
 // onListSites executes 'tsh sites' command
