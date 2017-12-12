@@ -15,3 +15,66 @@ limitations under the License.
 */
 
 package ansible
+
+import (
+	"time"
+
+	"github.com/gravitational/teleport/lib/services"
+)
+
+var serverFixture = []services.Server{
+	&services.ServerV2{
+		Metadata: services.Metadata{
+			Labels: map[string]string{
+				"os": "gentoo",
+			},
+		},
+		Spec: services.ServerSpecV2{
+			CmdLabels: map[string]services.CommandLabelV2{
+				"time": services.CommandLabelV2{
+					Period:  services.NewDuration(time.Second),
+					Command: []string{"time"},
+					Result:  "now",
+				},
+			},
+		},
+	},
+	&services.ServerV2{
+		Metadata: services.Metadata{
+			Labels: map[string]string{
+				"os":   "coreos",
+				"role": "database",
+			},
+		},
+		Spec: services.ServerSpecV2{
+			CmdLabels: map[string]services.CommandLabelV2{
+				"time": services.CommandLabelV2{
+					Period:  services.NewDuration(time.Second),
+					Command: []string{"time"},
+					Result:  "now",
+				},
+			},
+		},
+	},
+	&services.ServerV2{
+		Metadata: services.Metadata{
+			Labels: map[string]string{
+				"os":   "plan9",
+				"role": "database",
+			},
+		},
+		Spec: services.ServerSpecV2{
+			CmdLabels: map[string]services.CommandLabelV2{
+				"time": services.CommandLabelV2{
+					Period:  services.NewDuration(time.Second),
+					Command: []string{"time"},
+					Result:  "now",
+				},
+			},
+		},
+	},
+}
+
+func DynamicInventoryHostTest() {
+
+}
