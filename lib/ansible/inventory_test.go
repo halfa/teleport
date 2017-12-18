@@ -17,7 +17,8 @@ limitations under the License.
 package ansible
 
 import (
-	"time"
+	"strings"
+	"testing"
 
 	"github.com/gravitational/teleport/lib/services"
 )
@@ -30,13 +31,8 @@ var serverFixture = []services.Server{
 			},
 		},
 		Spec: services.ServerSpecV2{
-			CmdLabels: map[string]services.CommandLabelV2{
-				"time": services.CommandLabelV2{
-					Period:  services.NewDuration(time.Second),
-					Command: []string{"time"},
-					Result:  "now",
-				},
-			},
+			Addr:     "198.145.29.83",
+			Hostname: "kernel.org",
 		},
 	},
 	&services.ServerV2{
@@ -47,13 +43,8 @@ var serverFixture = []services.Server{
 			},
 		},
 		Spec: services.ServerSpecV2{
-			CmdLabels: map[string]services.CommandLabelV2{
-				"time": services.CommandLabelV2{
-					Period:  services.NewDuration(time.Second),
-					Command: []string{"time"},
-					Result:  "now",
-				},
-			},
+			Addr:     "11.1.1.1",
+			Hostname: "coreos.local",
 		},
 	},
 	&services.ServerV2{
@@ -64,17 +55,27 @@ var serverFixture = []services.Server{
 			},
 		},
 		Spec: services.ServerSpecV2{
-			CmdLabels: map[string]services.CommandLabelV2{
-				"time": services.CommandLabelV2{
-					Period:  services.NewDuration(time.Second),
-					Command: []string{"time"},
-					Result:  "now",
-				},
-			},
+			Addr:     "8.8.4.4",
+			Hostname: "g00gle.com",
 		},
 	},
 }
 
-func DynamicInventoryHostTest() {
+func TestDynamicInventoryHost(t *testing.T) {
+	jsonInventory, err := DynamicInventoryList(serverFixture)
+	if err != nil {
+		t.Error(err)
+	}
 
+	encodedJSON :=
+		`{"Groups":{
+			"os-coreos":{"Hosts":["11.1.1.1"],"Vars":{}},
+			"os-gentoo":{"Hosts":["198.145.29.83"],"Vars":{}},
+			"os-plan9":{"Hosts":["8.8.4.4"],"Vars":{}},
+			"role-database":{"Hosts":["11.1.1.1","8.8.4.4"],"Vars":{}},
+			"time-now":{"Hosts":["198.145.29.83","11.1.1.1","8.8.4.4"],"Vars":{}}
+		}}`
+	if !strings.EqualFold(jsonInventory, strings.TrimSpace(encodedJSON)) {
+		t.Error("mismatch in json output")
+	}
 }
