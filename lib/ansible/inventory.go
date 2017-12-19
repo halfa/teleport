@@ -25,13 +25,13 @@ import (
 
 // Inventory matches the JSON struct needed for DynamicInventoryList
 type Inventory struct {
-	Groups map[string]Group
+	Groups map[string]Group `json:"groups"`
 }
 
 // Group gather hosts and variables common to them
 type Group struct {
-	Hosts []string
-	Vars  map[string]string
+	Hosts []string          `json:"hosts"`
+	Vars  map[string]string `json:"vars"`
 }
 
 // DynamicInventoryList returns a JSON-formated ouput compatible with Ansible --list flag

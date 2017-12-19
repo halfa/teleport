@@ -69,11 +69,11 @@ func TestDynamicInventoryHost(t *testing.T) {
 	}
 
 	encodedJSON :=
-		`{"Groups":{
-			"os-coreos":{"Hosts":["11.1.1.1"],"Vars":{}},
-			"os-gentoo":{"Hosts":["198.145.29.83"],"Vars":{}},
-			"os-plan9":{"Hosts":["8.8.4.4"],"Vars":{}},
-			"role-database":{"Hosts":["11.1.1.1","8.8.4.4"],"Vars":{}}
+		`{"groups":{
+			"os-coreos":{"hosts":["11.1.1.1"],"vars":{}},
+			"os-gentoo":{"hosts":["198.145.29.83"],"vars":{}},
+			"os-plan9":{"hosts":["8.8.4.4"],"vars":{}},
+			"role-database":{"hosts":["11.1.1.1","8.8.4.4"],"vars":{}}
 		}}`
 	var i Inventory
 	err = json.Unmarshal([]byte(encodedJSON), &i)
