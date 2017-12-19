@@ -17,7 +17,7 @@ limitations under the License.
 package ansible
 
 import (
-	"strings"
+	"encoding/json"
 	"testing"
 
 	"github.com/gravitational/teleport/lib/services"
@@ -72,10 +72,15 @@ func TestDynamicInventoryHost(t *testing.T) {
 			"os-coreos":{"Hosts":["11.1.1.1"],"Vars":{}},
 			"os-gentoo":{"Hosts":["198.145.29.83"],"Vars":{}},
 			"os-plan9":{"Hosts":["8.8.4.4"],"Vars":{}},
-			"role-database":{"Hosts":["11.1.1.1","8.8.4.4"],"Vars":{}},
-			"time-now":{"Hosts":["198.145.29.83","11.1.1.1","8.8.4.4"],"Vars":{}}
+			"role-database":{"Hosts":["11.1.1.1","8.8.4.4"],"Vars":{}}
 		}}`
-	if !strings.EqualFold(jsonInventory, strings.TrimSpace(encodedJSON)) {
-		t.Error("mismatch in json output")
+	var i Inventory
+	err = json.Unmarshal([]byte(encodedJSON), &i)
+	if err != nil {
+		t.Error("cannot unmarshal fixture, did the type change?")
+	}
+	reEncodedJSON, _ := json.Marshal(i)
+	if jsonInventory != string(reEncodedJSON) {
+		t.Errorf("mismatch in json output\nGiven: %s\nExpct: %s", jsonInventory, string(reEncodedJSON))
 	}
 }
