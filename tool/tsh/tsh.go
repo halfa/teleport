@@ -30,6 +30,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/teleport/lib/ansible"
+
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport/lib/asciitable"
@@ -118,9 +120,14 @@ type CLIConf struct {
 	// format to use with --out to store a fershly retreived certificate
 	IdentityFormat client.IdentityFileFormat
 
-	// OutputFormat is an argument to --out for 'tsh ls' that defines
+	// OutputFormat is an argument to --format for 'tsh ls' that defines
 	// the output format to stdout
 	OutputFormat string
+
+	// Ansible flags for --list
+	AnsibleList bool
+	// Ansible flag for --host
+	AnsibleHost string
 
 	// AuthConnector is the name of the connector to use.
 	AuthConnector string
@@ -192,7 +199,9 @@ func Run(args []string, underTest bool) {
 	// ls
 	ls := app.Command("ls", "List remote SSH nodes")
 	ls.Arg("labels", "List of labels to filter node list").StringVar(&cf.UserHost)
-	ls.Flag("out", "Format output. Possible values : ansible").Short('o').StringVar(&cf.OutputFormat)
+	ls.Flag("format", "Format output. Possible values : json (compatible with ansible dynamic inventory), ansible-static (compatible with ansible static inventory").StringVar(&cf.OutputFormat)
+	ls.Flag("list", "Match Ansible Dynamic Inventory requirements").BoolVar(&cf.AnsibleList)
+	ls.Flag("host", "Match Ansible Dynamic Inventory requirements").StringVar(&cf.AnsibleHost)
 	// clusters
 	clusters := app.Command("clusters", "List available Teleport clusters")
 	clusters.Flag("quiet", "Quiet mode").Short('q').BoolVar(&cf.Quiet)
@@ -374,25 +383,22 @@ func onListNodes(cf *CLIConf) {
 		utils.FatalError(err)
 	}
 
-	if cf.OutputFormat == "ansible" {
-		inventory := make(map[string][]string)
-		// get all keys
-		for _, n := range nodes {
-			// get labels and add to groups
-			for label, val := range n.GetAllLabels() {
-				// groupName is of the form apache-2.2
-				groupName := label + "-" + val
-				inventory[groupName] = append(inventory[groupName], n.GetAddr())
-			}
+	// called with --host
+	if cf.AnsibleHost != "" {
+		ansible.DynamicInventoryHost(nodes, cf.AnsibleHost)
+		return
+	}
+
+	switch cf.OutputFormat {
+	case "json":
+		jsonInventory, err := ansible.DynamicInventoryList(nodes)
+		if err != nil {
+			utils.FatalError(err)
 		}
-		// write one tulpe by keys
-		for groupName, nodeIPs := range inventory {
-			fmt.Println("[" + groupName + "]")
-			for _, IP := range nodeIPs {
-				fmt.Println(IP)
-			}
-		}
-	} else {
+		fmt.Printf("%s", jsonInventory)
+	case "ansible-static":
+		ansible.StaticInventory(nodes)
+	default:
 		t := asciitable.MakeTable([]string{"Node Name", "Node ID", "Address", "Labels"})
 		for _, n := range nodes {
 			t.AddRow([]string{
